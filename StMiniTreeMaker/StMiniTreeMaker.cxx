@@ -310,7 +310,7 @@ Bool_t StMiniTreeMaker::processEvent()
     Float_t PxL = PxCal(TrkCandidateL);
     Float_t PxR = PxCal(TrkCandidateR);
 
-    if( !PassPxCut(PxL,PxR,centrality) )  return kFALSE;
+    //if( !PassPxCut(PxL,PxR,centrality) )  return kFALSE;
     if(mFillHisto)  hEvent->Fill(4.5);
     if(Debug()) LOG_INFO<<"Pass Px Cut"<<endm;
     
