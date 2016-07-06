@@ -144,6 +144,7 @@ class StMiniTreeMaker : public StMaker {
 
         //define histograms ongoing...
         TH1D           *hEvent;
+        TH1D           *hDca;
       
         ClassDef(StMiniTreeMaker, 1)
 };

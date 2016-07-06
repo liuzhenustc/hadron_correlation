@@ -347,8 +347,12 @@ Bool_t StMiniTreeMaker::IsValidTrack(StMuTrack *track)
 //_____________________________________________________________________________
 Bool_t StMiniTreeMaker::IsMtdTrack(StMuTrack *track)
 {
+    Double_t gDca = track->dcaGlobal().mag();
+    if( gDca > 3. ) return kFALSE;
+    hDca->Fill(gDca);
+    if(Debug()) cout<<"IsMtdTrack dca cut"<<endl;
     int iMtd = track->index2MtdHit();
-    //if(Debug()) cout<<"IsMtdTrack index: "<<iMtd<<endl;
+    if(Debug()) cout<<"IsMtdTrack index: "<<iMtd<<endl;
     if(iMtd>-1) return kTRUE;
 }
 //_____________________________________________________________________________
@@ -498,6 +502,8 @@ void StMiniTreeMaker::bookHistos()
     hEvent->GetXaxis()->SetBinLabel(3,"After vertex cut");
     hEvent->GetXaxis()->SetBinLabel(4,"2 pion events");
     hEvent->GetXaxis()->SetBinLabel(5,"PxCut");
+
+    hDca = new TH1D("hDca","Dca Distribution",1000,0,10);
 }
 //_____________________________________________________________________________
 void StMiniTreeMaker::bookTree()
