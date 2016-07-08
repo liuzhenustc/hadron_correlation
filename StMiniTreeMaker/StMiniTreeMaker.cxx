@@ -173,6 +173,21 @@ Int_t StMiniTreeMaker::Make()
     TrkCandidateL.clear();
     TrkCandidateR.clear();
 
+    //////////////////////////////////////
+    //select the right vertex using VPD
+    //////////////////////////////////////
+    Float_t vzVpd = -999;
+    if(mBTofHeader) vzVpd = mBTofHeader->vpdVz();
+    for(unsigned int i=0;i<mMuDst->numberOfPrimaryVertices();i++) {
+        StMuPrimaryVertex *vtx = mMuDst->primaryVertex(i);
+        if(!vtx) continue;
+        Float_t vz = vtx->position().z();
+        if(fabs(vzVpd)<200 && fabs(vzVpd-vz)<3.) {
+            mMuDst->setVertexIndex(i);
+            break;
+        }
+    }
+
     if(!processEvent()) return kStOK;
 
     if(mFillTree) mEvtTree->Fill();
@@ -291,7 +306,7 @@ Bool_t StMiniTreeMaker::processEvent()
     mEvtData.mZDCRate         =zdcRate;
     mEvtData.mVpdVz           =vpdVz;
     mEvtData.mTpcVz           =tpcVz;
-       
+
     //--PxCut-centrality-dependent---
     int nPrimary = mMuDst->numberOfPrimaryTracks();//Use primary tracks for Px candidate 
     for(Int_t i=0;i<nPrimary;i++){
@@ -313,7 +328,7 @@ Bool_t StMiniTreeMaker::processEvent()
     //if( !PassPxCut(PxL,PxR,centrality) )  return kFALSE;
     if(mFillHisto)  hEvent->Fill(4.5);
     if(Debug()) LOG_INFO<<"Pass Px Cut"<<endm;
-    
+
     mEvtData.mPxL   =PxL;
     mEvtData.mPxR   =PxR;
     Int_t nPi = PiCandidate.size();
