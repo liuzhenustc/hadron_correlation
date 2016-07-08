@@ -177,6 +177,7 @@ Int_t StMiniTreeMaker::Make()
     //select the right vertex using VPD
     //////////////////////////////////////
     Float_t vzVpd = -999;
+    StBTofHeader *mBTofHeader = mMuDst->btofHeader();
     if(mBTofHeader) vzVpd = mBTofHeader->vpdVz();
     for(unsigned int i=0;i<mMuDst->numberOfPrimaryVertices();i++) {
         StMuPrimaryVertex *vtx = mMuDst->primaryVertex(i);
