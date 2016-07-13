@@ -1,4 +1,4 @@
-const Int_t mMax = 20;
+const Int_t mMax = 200;
 struct StEvtData
 {
 	// event information

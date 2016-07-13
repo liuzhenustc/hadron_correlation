@@ -6,7 +6,7 @@ ClassImp(StMiniTreeMaker)
     //_____________________________________________________________________________
     StMiniTreeMaker::StMiniTreeMaker(const Char_t *name) :
         StMaker(name), 
-        mFillTree(1), mFillHisto(1), 
+        mFillTree(1), mFillHisto(0), 
         mPrintConfig(1), mPrintMemory(0), mPrintCpu(0),
         mMaxTpcVz(100.), mMaxDiffVz(3.), 
         mMinTrkP(0.15), mMaxTrkP(1e4),
@@ -209,7 +209,6 @@ Int_t StMiniTreeMaker::Make()
 //_____________________________________________________________________________
 Bool_t StMiniTreeMaker::processEvent()
 {
-    if(Debug())cout<<"pi: "<<pi<<endl;
     if(mFillHisto) hEvent->Fill(0.5);
 
     StMuEvent *mMuEvent = mMuDst->event();
@@ -248,7 +247,7 @@ Bool_t StMiniTreeMaker::processEvent()
         if(muMtdHeader && muMtdHeader->shouldHaveRejectEvent()==1) DiMuonHFT = kFALSE;
     }
 
-    if(!DiMuon && !DiMuonHFT)  return kFALSE;//dimuon and dimuon hft event
+    //if(!DiMuon && !DiMuonHFT)  return kFALSE;//dimuon and dimuon hft event
     if(mFillHisto)  hEvent->Fill(1.5);
     if(Debug()) LOG_INFO<<"Pass Dimuon Trigger"<<endm;
 
@@ -256,7 +255,7 @@ Bool_t StMiniTreeMaker::processEvent()
     Float_t vpdVz = -999; 
     StBTofHeader *mBTofHeader = mMuDst->btofHeader();
     if(mBTofHeader) vpdVz = mBTofHeader->vpdVz();//select vpdVz
-    if(abs(vpdVz)>500)
+    if(abs(vpdVz)>200)
     {
         LOG_DEBUG << "Bad vpd vertext: " << vpdVz << endm;
         return kStOK;
@@ -308,37 +307,49 @@ Bool_t StMiniTreeMaker::processEvent()
     mEvtData.mVpdVz           =vpdVz;
     mEvtData.mTpcVz           =tpcVz;
 
-    //--PxCut-centrality-dependent---
-    int nPrimary = mMuDst->numberOfPrimaryTracks();//Use primary tracks for Px candidate 
+    //--for----track--check-------
+    int nPrimary = mMuDst->numberOfPrimaryTracks(); 
+    if(Debug()) cout<<"# of primary track: "<<nPrimary<<endl;
+    int nTrack = 0;
     for(Int_t i=0;i<nPrimary;i++){
         StMuTrack* pTrack = mMuDst->primaryTracks(i);
-        PassPxCandidate(pTrack);
+        if(!PassPiCandidate(pTrack)) continue;
+        nTrack++;
     }
-
-    Int_t nGlobal = mMuDst->numberOfGlobalTracks();
-    for(Int_t i=0;i<nGlobal;i++){
-        StMuTrack* gTrack = mMuDst->globalTracks(i);
-        PassPiCandidate(gTrack);
-    }
-
-    GetTrigger();
-
-    Float_t PxL = PxCal(TrkCandidateL);
-    Float_t PxR = PxCal(TrkCandidateR);
-
-    //if( !PassPxCut(PxL,PxR,centrality) )  return kFALSE;
-    if(mFillHisto)  hEvent->Fill(4.5);
-    if(Debug()) LOG_INFO<<"Pass Px Cut"<<endm;
-
-    mEvtData.mPxL   =PxL;
-    mEvtData.mPxR   =PxR;
-    Int_t nPi = PiCandidate.size();
-    mEvtData.mNPiTrk  = nPi;
-    for(Int_t i=0;i<nPi;i++){
+    mEvtData.mNPiTrk  = nTrack;
+    for(Int_t i=0;i<nTrack;i++){
         mEvtData.mPiPt[i] = PiCandidate[i].perp();
         mEvtData.mPiEta[i] = PiCandidate[i].pseudoRapidity();
         mEvtData.mPiPhi[i] = PiCandidate[i].phi();
     }
+    //-----for---track---check----
+
+    //--PxCut-centrality-dependent---
+    //int nPrimary = mMuDst->numberOfPrimaryTracks();//Use primary tracks for Px candidate 
+    //for(Int_t i=0;i<nPrimary;i++){
+    //    StMuTrack* pTrack = mMuDst->primaryTracks(i);
+    //    PassPxCandidate(pTrack);//--for TPC track
+    //    PassPiCandidate(pTrack);//--for TPC track
+    //}
+
+    //GetTrigger();
+
+    //Float_t PxL = PxCal(TrkCandidateL);
+    //Float_t PxR = PxCal(TrkCandidateR);
+
+    //if( !PassPxCut(PxL,PxR,centrality) )  return kFALSE;
+    //if(mFillHisto)  hEvent->Fill(4.5);
+    //if(Debug()) LOG_INFO<<"Pass Px Cut"<<endm;
+
+    //mEvtData.mPxL   =PxL;
+    //mEvtData.mPxR   =PxR;
+    //Int_t nPi = PiCandidate.size();
+    //mEvtData.mNPiTrk  = nPi;
+    //for(Int_t i=0;i<nPi;i++){
+    //    mEvtData.mPiPt[i] = PiCandidate[i].perp();
+    //    mEvtData.mPiEta[i] = PiCandidate[i].pseudoRapidity();
+    //    mEvtData.mPiPhi[i] = PiCandidate[i].phi();
+    //}
 
     return kTRUE;
 }
@@ -365,11 +376,12 @@ Bool_t StMiniTreeMaker::IsMtdTrack(StMuTrack *track)
 {
     Double_t gDca = track->dcaGlobal().mag();
     if( gDca > 3. ) return kFALSE;
-    hDca->Fill(gDca);
-    if(Debug()) cout<<"IsMtdTrack dca cut"<<endl;
+    //if(Debug()) cout<<"gDca"<<gDca<<endl;
+    //hDca->Fill(gDca);
     int iMtd = track->index2MtdHit();
-    if(Debug()) cout<<"IsMtdTrack index: "<<iMtd<<endl;
-    if(iMtd>-1) return kTRUE;
+    if(iMtd<0) return kFALSE;
+    //if(Debug()) cout<<"IsMtd: "<<iMtd<<endl;
+    return kTRUE;
 }
 //_____________________________________________________________________________
 Bool_t StMiniTreeMaker::IsPion(StMuTrack *track)
@@ -382,17 +394,16 @@ Bool_t StMiniTreeMaker::IsPion(StMuTrack *track)
 Bool_t StMiniTreeMaker::IsPionEvent()
 {
     Int_t nPi =0;
-    int nGlobal = mMuDst->numberOfGlobalTracks();
-    if(Debug()) cout<<"IsPionEvent nGlobal: "<<nGlobal<<endl;
-    for(Int_t i=0;i<nGlobal;i++){
-        StMuTrack* gTrack = mMuDst->globalTracks(i);
-        if(!IsValidTrack(gTrack)) continue;
-        if(!IsMtdTrack(gTrack)) continue;
-        if(!IsPion(gTrack)) continue;
-        if(Debug()) cout<<"IsPionEvent pass IsPion"<<endl;
+    int nPrimary = mMuDst->numberOfPrimaryTracks(); 
+    for(Int_t i=0;i<nPrimary;i++){
+        StMuTrack* pTrack = mMuDst->primaryTracks(i);
+        if(!IsValidTrack(pTrack)) continue;
+        if(!IsMtdTrack(pTrack)) continue;
+        if(!IsPion(pTrack)) continue;
         nPi++;
     }
     if(nPi>0){
+        if(Debug()) cout<<"IsPionEvent"<<endl;
         return kTRUE;
     } 
 }
@@ -400,19 +411,16 @@ Bool_t StMiniTreeMaker::IsPionEvent()
 Bool_t StMiniTreeMaker::Is2PionEvent()
 {
     Int_t nPi =0;
-    int nGlobal = mMuDst->numberOfGlobalTracks();
-    if(Debug()) cout<<"Is2PionEvent nGlobal: "<<nGlobal<<endl;
-    for(Int_t i=0;i<nGlobal;i++){
-        StMuTrack* gTrack = mMuDst->globalTracks(i);
-        if(!IsValidTrack(gTrack)) continue;
-        //if(Debug()) cout<<"Is2PionEvent pass IsValidTrack"<<endl;
-        if(!IsMtdTrack(gTrack)) continue;
-        //if(Debug()) cout<<"Is2PionEvent pass IsMtdTrack"<<endl;
-        if(!IsPion(gTrack)) continue;
-        if(Debug()) cout<<"Is2PionEvent pass IsPion"<<endl;
+    int nPrimary = mMuDst->numberOfPrimaryTracks(); 
+    for(Int_t i=0;i<nPrimary;i++){
+        StMuTrack* pTrack = mMuDst->primaryTracks(i);
+        if(!IsValidTrack(pTrack)) continue;
+        if(!IsMtdTrack(pTrack)) continue;
+        if(!IsPion(pTrack)) continue;
         nPi++;
     }
     if(nPi>1){
+        if(Debug()) cout<<"Is2PionEvent nPrimary: "<<endl;
         return kTRUE;
     } 
 }
@@ -437,7 +445,7 @@ Bool_t StMiniTreeMaker::PassPiCandidate(StMuTrack *track)
     if(!IsMtdTrack(track)) return kFALSE;
     if(!IsPion(track)) return kFALSE;
     StThreeVectorF mom = track->momentum();
-    float eta = mom.pseudoRapidity();
+    //float eta = mom.pseudoRapidity();
     PiCandidate.push_back(mom);
     return kTRUE;
 }

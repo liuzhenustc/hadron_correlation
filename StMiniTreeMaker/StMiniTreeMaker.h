@@ -137,6 +137,7 @@ class StMiniTreeMaker : public StMaker {
         Int_t          mQTSlewCorr[4][16][8];                        // Slewing correction values for QT
         Int_t          mTrigQTpos[4][2];                             // corresponding QT position of fire trigger bit
 
+        Int_t      mIndex2Primary[50000];
         IntVec      mTriggerIDs;
         StThreeVecF PiCandidate;
         StThreeVecF TrkCandidateL;//-1<eta<0.5
