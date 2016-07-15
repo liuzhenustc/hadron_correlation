@@ -6,7 +6,7 @@ ClassImp(StMiniTreeMaker)
     //_____________________________________________________________________________
     StMiniTreeMaker::StMiniTreeMaker(const Char_t *name) :
         StMaker(name), 
-        mFillTree(1), mFillHisto(0), 
+        mFillTree(1), mFillHisto(1), 
         mPrintConfig(1), mPrintMemory(0), mPrintCpu(0),
         mMaxTpcVz(100.), mMaxDiffVz(3.), 
         mMinTrkP(0.15), mMaxTrkP(1e4),
@@ -169,6 +169,14 @@ Int_t StMiniTreeMaker::Make()
         return kStOK;
     }
 
+    mMuEvent = mMuDst->event();
+    if(!mMuEvent){
+        LOG_WARN<<"No Muevent !"<<endm;
+        return kFALSE;
+    }
+
+    StBTofHeader *mBTofHeader = mMuDst->btofHeader();
+
     PiCandidate.clear();
     TrkCandidateL.clear();
     TrkCandidateR.clear();
@@ -177,7 +185,6 @@ Int_t StMiniTreeMaker::Make()
     //select the right vertex using VPD
     //////////////////////////////////////
     Float_t vzVpd = -999;
-    StBTofHeader *mBTofHeader = mMuDst->btofHeader();
     if(mBTofHeader) vzVpd = mBTofHeader->vpdVz();
     for(unsigned int i=0;i<mMuDst->numberOfPrimaryVertices();i++) {
         StMuPrimaryVertex *vtx = mMuDst->primaryVertex(i);
@@ -211,11 +218,6 @@ Bool_t StMiniTreeMaker::processEvent()
 {
     if(mFillHisto) hEvent->Fill(0.5);
 
-    StMuEvent *mMuEvent = mMuDst->event();
-    if(!mMuEvent){
-        LOG_WARN<<"No event level information !"<<endm;
-        return kFALSE;
-    }
     Bool_t validTrigger = kFALSE;
     Bool_t DiMuon       = kFALSE;
     Bool_t DiMuonHFT    = kFALSE;
@@ -238,6 +240,8 @@ Bool_t StMiniTreeMaker::processEvent()
         return kFALSE;
     }
 
+    //reject dimuon event overlap with other triggers
+    //but should have been rejected
     if( DiMuon ){ 
         StMuMtdHeader *muMtdHeader = mMuDst->mtdHeader();
         if(muMtdHeader && muMtdHeader->shouldHaveRejectEvent()==1) DiMuon = kFALSE;
@@ -246,6 +250,11 @@ Bool_t StMiniTreeMaker::processEvent()
         StMuMtdHeader *muMtdHeader = mMuDst->mtdHeader();
         if(muMtdHeader && muMtdHeader->shouldHaveRejectEvent()==1) DiMuonHFT = kFALSE;
     }
+
+    if(Debug()) LOG_INFO << "test eventId: " << endm;
+    Int_t testEventId = mMuEvent->eventNumber();
+    if(testEventId!=1888360) return kFALSE;//test events;
+    if(Debug()) LOG_INFO<<"test eventId: "<<testEventId<<endm;
 
     //if(!DiMuon && !DiMuonHFT)  return kFALSE;//dimuon and dimuon hft event
     if(mFillHisto)  hEvent->Fill(1.5);
@@ -264,6 +273,7 @@ Bool_t StMiniTreeMaker::processEvent()
     StMuPrimaryVertex* priVertex = mMuDst->primaryVertex();
     StThreeVectorF verPos = priVertex->position();
     Float_t tpcVz = verPos.z();
+    if(Debug()) LOG_INFO << "primary vertex: " << tpcVz << endm;
 
     //---vertex--cut
     if(mMaxTpcVz<1e4 && abs(tpcVz)>mMaxTpcVz) return kStOK;
@@ -297,6 +307,40 @@ Bool_t StMiniTreeMaker::processEvent()
     Short_t centrality     = refMultCorr->getCentralityBin16();
     if(Debug()) LOG_INFO<<"gRefMult: "<<gRefMult<<" \tgRefMultCorr: "<<gRefMultCorr<<" \tmCentrality: "<<centrality<<endm;
 
+    //--for----track--check-------
+    //int nPrimary = mMuDst->numberOfPrimaryTracks(); 
+    //if(Debug()) cout<<"# of primary track: "<<nPrimary<<endl;
+    //int nTrack = 0;
+    //for(Int_t i=0;i<nPrimary;i++){
+    //    StMuTrack* pTrack = mMuDst->primaryTracks(i);
+    //    if(!PassPiCandidate(pTrack)) continue;
+    //    nTrack++;
+    //}
+    //mEvtData.mNPiTrk  = nTrack;
+    //for(Int_t i=0;i<nTrack;i++){
+    //    mEvtData.mPiPt[i] = PiCandidate[i].perp();
+    //    mEvtData.mPiEta[i] = PiCandidate[i].pseudoRapidity();
+    //    mEvtData.mPiPhi[i] = PiCandidate[i].phi();
+    //}
+    //-----for---track---check----
+
+    //--PxCut-centrality-dependent---
+    int nPrimary = mMuDst->numberOfPrimaryTracks();//Use primary tracks for Px candidate 
+    for(Int_t i=0;i<nPrimary;i++){
+        StMuTrack* pTrack = mMuDst->primaryTracks(i);
+        PassPxCandidate(pTrack);//--for TPC track
+        PassPiCandidate(pTrack);//--for TPC track
+    }
+
+    GetTrigger();
+
+    Float_t PxL = PxCal(TrkCandidateL);
+    Float_t PxR = PxCal(TrkCandidateR);
+
+    //if( !PassPxCut(PxL,PxR,centrality) )  return kFALSE;
+    //if(mFillHisto)  hEvent->Fill(4.5);
+    //if(Debug()) LOG_INFO<<"Pass Px Cut"<<endm;
+
     mEvtData.mRunId           =runId;
     mEvtData.mEventId         =eventId;
     mEvtData.mGRefMult        =gRefMult;
@@ -307,49 +351,17 @@ Bool_t StMiniTreeMaker::processEvent()
     mEvtData.mVpdVz           =vpdVz;
     mEvtData.mTpcVz           =tpcVz;
 
-    //--for----track--check-------
-    int nPrimary = mMuDst->numberOfPrimaryTracks(); 
-    if(Debug()) cout<<"# of primary track: "<<nPrimary<<endl;
-    int nTrack = 0;
-    for(Int_t i=0;i<nPrimary;i++){
-        StMuTrack* pTrack = mMuDst->primaryTracks(i);
-        if(!PassPiCandidate(pTrack)) continue;
-        nTrack++;
-    }
-    mEvtData.mNPiTrk  = nTrack;
-    for(Int_t i=0;i<nTrack;i++){
+    mEvtData.mPxL   =PxL;
+    mEvtData.mPxR   =PxR;
+    
+    //---track---level----
+    Int_t nPi = PiCandidate.size();
+    mEvtData.mNPiTrk  = nPi;
+    for(Int_t i=0;i<nPi;i++){
         mEvtData.mPiPt[i] = PiCandidate[i].perp();
         mEvtData.mPiEta[i] = PiCandidate[i].pseudoRapidity();
         mEvtData.mPiPhi[i] = PiCandidate[i].phi();
     }
-    //-----for---track---check----
-
-    //--PxCut-centrality-dependent---
-    //int nPrimary = mMuDst->numberOfPrimaryTracks();//Use primary tracks for Px candidate 
-    //for(Int_t i=0;i<nPrimary;i++){
-    //    StMuTrack* pTrack = mMuDst->primaryTracks(i);
-    //    PassPxCandidate(pTrack);//--for TPC track
-    //    PassPiCandidate(pTrack);//--for TPC track
-    //}
-
-    //GetTrigger();
-
-    //Float_t PxL = PxCal(TrkCandidateL);
-    //Float_t PxR = PxCal(TrkCandidateR);
-
-    //if( !PassPxCut(PxL,PxR,centrality) )  return kFALSE;
-    //if(mFillHisto)  hEvent->Fill(4.5);
-    //if(Debug()) LOG_INFO<<"Pass Px Cut"<<endm;
-
-    //mEvtData.mPxL   =PxL;
-    //mEvtData.mPxR   =PxR;
-    //Int_t nPi = PiCandidate.size();
-    //mEvtData.mNPiTrk  = nPi;
-    //for(Int_t i=0;i<nPi;i++){
-    //    mEvtData.mPiPt[i] = PiCandidate[i].perp();
-    //    mEvtData.mPiEta[i] = PiCandidate[i].pseudoRapidity();
-    //    mEvtData.mPiPhi[i] = PiCandidate[i].phi();
-    //}
 
     return kTRUE;
 }
@@ -377,7 +389,7 @@ Bool_t StMiniTreeMaker::IsMtdTrack(StMuTrack *track)
     Double_t gDca = track->dcaGlobal().mag();
     if( gDca > 3. ) return kFALSE;
     //if(Debug()) cout<<"gDca"<<gDca<<endl;
-    //hDca->Fill(gDca);
+    //hDca->Fill(gDca);//???can't pass why???
     int iMtd = track->index2MtdHit();
     if(iMtd<0) return kFALSE;
     //if(Debug()) cout<<"IsMtd: "<<iMtd<<endl;
@@ -486,10 +498,10 @@ Float_t StMiniTreeMaker::PxCal(StThreeVecF trkVec)
         Float_t PhiCandidate = trkVec[i].phi();
         Float_t DeltaPhi = PhiCandidate-PhiTrig;//candidate-trigger
         if( fabs(DeltaPhi) < 0.5*3.1415926 ) continue;
-        if(Debug()) {cout<<"After DeltaPhi cut: "<<DeltaPhi<<endl;}
+        //if(Debug()) {cout<<"After DeltaPhi cut: "<<DeltaPhi<<endl;}
         Float_t par = PtCandidate*cos(DeltaPhi);
         Px = Px + par;
-        if(Debug()) cout<<"Px: "<<Px<<endl;
+        //if(Debug()) cout<<"Px: "<<Px<<endl;
     }   
     return Px;
 }
@@ -508,14 +520,14 @@ Bool_t StMiniTreeMaker::PassPxCut(Float_t PxL,Float_t PxR, Short_t cen)
     else if(cen==14) i=7;
     else  i=8;
 
-    if( PxL<PxCutL[i] || PxR<PxCutR[i] ){ 
-        if(Debug()) {
-            cout<<"PxCut: "<<endl;
-            cout<<"centrality: "<<cen<<"  PxL: "<<PxL<<"  PxR: "<<PxR<<endl;
-            cout<<"PxCutL : "<<PxCutL[i]<<"  PxCutR: "<<PxCutR[i]<<endl;
-        }
-        return kTRUE;
-    }
+    //if( PxL<PxCutL[i] || PxR<PxCutR[i] ){ 
+    //    if(Debug()) {
+    //        cout<<"PxCut: "<<endl;
+    //        cout<<"centrality: "<<cen<<"  PxL: "<<PxL<<"  PxR: "<<PxR<<endl;
+    //        cout<<"PxCutL : "<<PxCutL[i]<<"  PxCutR: "<<PxCutR[i]<<endl;
+    //    }
+    //    return kTRUE;
+    //}
 }
 //_____________________________________________________________________________
 void StMiniTreeMaker::bookHistos()

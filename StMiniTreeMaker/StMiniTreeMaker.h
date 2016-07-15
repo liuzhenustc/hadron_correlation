@@ -32,6 +32,7 @@ class TFile;
 
 class StMuDstMaker;
 class StMuDst;
+class StMuEvent;   
 class StMuTrack;
 class StMuMtdHit;
 class StRefMultCorrVPDMBZDCNoVtx;
@@ -101,6 +102,7 @@ class StMiniTreeMaker : public StMaker {
         static Double_t constexpr mPMass = 0.938272046;
         StMuDstMaker   *mMuDstMaker;          // Pointer to StMuDstMaker
         StMuDst        *mMuDst;              // Pointer to MuDst event
+        StMuEvent      *mMuEvent;            // pointer to MuEvent
 
         StRefMultCorrVPDMBZDCNoVtx *refMultCorr; //decide centrality
 
