@@ -175,26 +175,9 @@ Int_t StMiniTreeMaker::Make()
         return kFALSE;
     }
 
-    StBTofHeader *mBTofHeader = mMuDst->btofHeader();
-
     PiCandidate.clear();
     TrkCandidateL.clear();
     TrkCandidateR.clear();
-
-    //////////////////////////////////////
-    //select the right vertex using VPD
-    //////////////////////////////////////
-    Float_t vzVpd = -999;
-    if(mBTofHeader) vzVpd = mBTofHeader->vpdVz();
-    for(unsigned int i=0;i<mMuDst->numberOfPrimaryVertices();i++) {
-        StMuPrimaryVertex *vtx = mMuDst->primaryVertex(i);
-        if(!vtx) continue;
-        Float_t vz = vtx->position().z();
-        if(fabs(vzVpd)<200 && fabs(vzVpd-vz)<3.) {
-            mMuDst->setVertexIndex(i);
-            break;
-        }
-    }
 
     if(!processEvent()) return kStOK;
 
@@ -212,6 +195,39 @@ Int_t StMiniTreeMaker::Make()
     }
 
     return kStOK;
+}
+//_____________________________________________________________________________
+Bool_t StMiniTreeMaker::passEvent(StMuEvent *ev)
+{
+    StBTofHeader *mBTofHeader = mMuDst->btofHeader();
+    //////////////////////////////////////
+    //select the right vertex using VPD
+    //////////////////////////////////////
+    Float_t vzVpd = -999;
+    if(mBTofHeader) vzVpd = mBTofHeader->vpdVz();
+    for(unsigned int i=0;i<mMuDst->numberOfPrimaryVertices();i++) {
+        StMuPrimaryVertex *vtx = mMuDst->primaryVertex(i);
+        if(!vtx) continue;
+        Float_t vz = vtx->position().z();
+        if(fabs(vzVpd)<200 && fabs(vzVpd-vz)<3.) {
+            mMuDst->setVertexIndex(i);
+            break;
+        }
+    }
+
+    if(!ev){
+        LOG_INFO << "StPicoCut::passEvent  No StMuEvent" << endm;
+        return kFALSE;
+    }
+    StThreeVectorF pVertex = ev->primaryVertexPosition();
+    if(fabs(pVertex.x())<1.e-5 && fabs(pVertex.y())<1.e-5 && fabs(pVertex.z())<1.e-5){
+        LOG_INFO << "StPicoCut::passEvent  bad vertices (x,y,z) = ("
+            << pVertex.x() << ","
+            << pVertex.y() << ","
+            << pVertex.z() << ")"
+            << endm;
+        return kFALSE;
+    }
 }
 //_____________________________________________________________________________
 Bool_t StMiniTreeMaker::processEvent()
@@ -251,10 +267,10 @@ Bool_t StMiniTreeMaker::processEvent()
         if(muMtdHeader && muMtdHeader->shouldHaveRejectEvent()==1) DiMuonHFT = kFALSE;
     }
 
-    if(Debug()) LOG_INFO << "test eventId: " << endm;
-    Int_t testEventId = mMuEvent->eventNumber();
-    if(testEventId!=1888360) return kFALSE;//test events;
-    if(Debug()) LOG_INFO<<"test eventId: "<<testEventId<<endm;
+    //if(Debug()) LOG_INFO << "test eventId: " << endm;
+    //Int_t testEventId = mMuEvent->eventNumber();
+    //if(testEventId!=1888360) return kFALSE;//test events;
+    //if(Debug()) LOG_INFO<<"test eventId: "<<testEventId<<endm;
 
     //if(!DiMuon && !DiMuonHFT)  return kFALSE;//dimuon and dimuon hft event
     if(mFillHisto)  hEvent->Fill(1.5);
@@ -353,7 +369,7 @@ Bool_t StMiniTreeMaker::processEvent()
 
     mEvtData.mPxL   =PxL;
     mEvtData.mPxR   =PxR;
-    
+
     //---track---level----
     Int_t nPi = PiCandidate.size();
     mEvtData.mNPiTrk  = nPi;

@@ -83,6 +83,7 @@ class StMiniTreeMaker : public StMaker {
         void     printConfig();
         void     bookTree();
         void     bookHistos();
+        Bool_t   passEvent(StMuEvent *ev);
         Bool_t   processEvent();
         Bool_t   IsValidTrack(StMuTrack *track);
         Bool_t   IsMtdTrack(StMuTrack *track);
