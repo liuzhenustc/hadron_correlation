@@ -13,7 +13,8 @@ struct StEvtData
     Float_t  mTpcVz;
 
 	//track information
-	Int_t    mNPiTrk;
+	Short_t    mNPiTrk;
+	Short_t    mPiTrkId[mMax];
     Float_t  mPiPt[mMax];
     Float_t  mPiEta[mMax];
     Float_t  mPiPhi[mMax];

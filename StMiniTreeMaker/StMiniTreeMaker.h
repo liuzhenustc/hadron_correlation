@@ -17,6 +17,7 @@
 #include "TLorentzVector.h"
 
 #include "StMtdUtil/StMtdConstants.h"
+#include "StPicoDstMaker/StPicoConstants.h"
 
 #include <vector>
 #include <map>
@@ -30,6 +31,7 @@ class TString;
 class TTree;
 class TFile;
 
+class StPicoDstMaker;
 class StMuDstMaker;
 class StMuDst;
 class StMuEvent;   
