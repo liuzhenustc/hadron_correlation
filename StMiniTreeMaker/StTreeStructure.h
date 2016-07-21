@@ -15,6 +15,8 @@ struct StEvtData
 	//track information
 	Short_t    mNPiTrk;
 	Short_t    mPiTrkId[mMax];
+	Float_t    mnSigmaPi[mMax];
+	Float_t    mgDca[mMax];
     Float_t  mPiPt[mMax];
     Float_t  mPiEta[mMax];
     Float_t  mPiPhi[mMax];

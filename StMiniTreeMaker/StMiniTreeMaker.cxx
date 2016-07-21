@@ -197,6 +197,9 @@ Int_t StMiniTreeMaker::Make()
 //_____________________________________________________________________________
 Bool_t StMiniTreeMaker::passEvent(StMuEvent *ev)
 {
+    //if(Debug()) LOG_INFO<<"Already in, Great!"<<endm;
+    //if(Debug()) LOG_INFO<<"nTriggerMtd: "<<nTriggerMtd<<endm;
+    //if(Debug()) LOG_INFO<<"mTriggerIdMtd0: "<<Pico::mTriggerIdMtd[0]<<endm;
     if(mFillHisto) hEvent->Fill(0.5);
     StBTofHeader *mBTofHeader = mMuDst->btofHeader();
     //////////////////////////////////////
@@ -219,6 +222,7 @@ Bool_t StMiniTreeMaker::passEvent(StMuEvent *ev)
         return kFALSE;
     }
     StThreeVectorF pVertex = ev->primaryVertexPosition();
+    if(Debug()) LOG_INFO<<"vertex: "<<pVertex.x()<<endm;
     if(fabs(pVertex.x())<1.e-5 && fabs(pVertex.y())<1.e-5 && fabs(pVertex.z())<1.e-5){
         LOG_INFO << "StPicoCut::passEvent  bad vertices (x,y,z) = ("
             << pVertex.x() << ","
@@ -250,6 +254,7 @@ Bool_t StMiniTreeMaker::passEvent(StMuEvent *ev)
     }
 
     if(!isTrg){
+        if(Debug()) LOG_INFO << "nTriggerMtd: " << nTriggerMtd <<endm;
         for(int i=0;i<nTriggerMtd;i++) {
             if(ev->triggerIdCollection().nominal().isTrigger(Pico::mTriggerIdMtd[i])){
                 isTrg = kTRUE;
@@ -268,7 +273,6 @@ Bool_t StMiniTreeMaker::passEvent(StMuEvent *ev)
         return kFALSE;
     }
 
-
     if(mFillHisto) hEvent->Fill(1.5);
 
     return kTRUE;
@@ -279,7 +283,7 @@ Bool_t StMiniTreeMaker::processEvent()
     //-----test
     if(Debug()) LOG_INFO << "test eventId: " << endm;
     Int_t testEventId = mMuEvent->eventNumber();
-    if( testEventId != 1890149 ) return kFALSE;//test events;
+    if( testEventId != 1893484 ) return kFALSE;//test events;
     if(Debug()) LOG_INFO<<"test eventId: "<<testEventId<<endm;
     //-----test
 
@@ -307,18 +311,46 @@ Bool_t StMiniTreeMaker::processEvent()
         return kFALSE;
     }
 
+    //----filter--Event---
+    //StPicoDst* mPicoDst = new StPicoDst();
+    //int nMthTrigHits = 0;
+    //Int_t nMtdHits = mPicoDst->numberOfMtdHits();
+    //Int_t nPidTraits = mPicoDst->numberOfMtdPidTraits();
+    //for(Int_t i=0; i<nMtdHits; i++)
+    //{
+    //    StPicoMtdHit *hit = mPicoDst->mtdHit(i);
+    //    if(!hit) continue;
+    //    if(hit->triggerFlag()<1) continue;
+    //    Int_t index = -1;
+    //    for(Int_t j=0; j<nPidTraits; j++)
+    //    {
+    //        StPicoMtdPidTraits *mtdPid = mPicoDst->mtdPidTraits(j);
+    //        if(mtdPid->backleg()==hit->backleg() &&
+    //                mtdPid->module()==hit->module() &&
+    //                mtdPid->cell()==hit->cell())
+    //        {
+    //            index = j;
+    //            break;
+    //        }
+    //    }
+    //    if(index<0) continue;
+    //    nMthTrigHits ++;
+    //}
+    //cout << "filter Event: " << nMthTrigHits <<endl;
+    //----------------------
+
     //reject dimuon event overlap with other triggers
     //but should have been rejected
-    if( DiMuon ){ 
-        StMuMtdHeader *muMtdHeader = mMuDst->mtdHeader();
-        if(muMtdHeader && muMtdHeader->shouldHaveRejectEvent()==1) DiMuon = kFALSE;
-    }
-    if( DiMuonHFT ){ 
-        StMuMtdHeader *muMtdHeader = mMuDst->mtdHeader();
-        if(muMtdHeader && muMtdHeader->shouldHaveRejectEvent()==1) DiMuonHFT = kFALSE;
-    }
+    //if( DiMuon ){ 
+    //    StMuMtdHeader *muMtdHeader = mMuDst->mtdHeader();
+    //    if(muMtdHeader && muMtdHeader->shouldHaveRejectEvent()==1) DiMuon = kFALSE;
+    //}
+    //if( DiMuonHFT ){ 
+    //    StMuMtdHeader *muMtdHeader = mMuDst->mtdHeader();
+    //    if(muMtdHeader && muMtdHeader->shouldHaveRejectEvent()==1) DiMuonHFT = kFALSE;
+    //}
 
-     //if(!DiMuon && !DiMuonHFT)  return kFALSE;//dimuon and dimuon hft event
+    if(!DiMuon && !DiMuonHFT)  return kFALSE;//dimuon and dimuon hft event
     if(mFillHisto)  hEvent->Fill(3.5);
     if(Debug()) LOG_INFO<<"Pass Dimuon Trigger"<<endm;
 
@@ -338,8 +370,8 @@ Bool_t StMiniTreeMaker::processEvent()
     if(Debug()) LOG_INFO << "primary vertex: " << tpcVz << endm;
 
     //---vertex--cut
-    //if(mMaxTpcVz<1e4 && abs(tpcVz)>mMaxTpcVz) return kStOK;
-    //if(mMaxDiffVz<1e4 && abs(tpcVz-vpdVz)>mMaxDiffVz) return kStOK;
+    if(mMaxTpcVz<1e4 && abs(tpcVz)>mMaxTpcVz) return kStOK;
+    if(mMaxDiffVz<1e4 && abs(tpcVz-vpdVz)>mMaxDiffVz) return kStOK;
     if(mFillHisto)  hEvent->Fill(4.5);
 
     //---pion--match-with-MTD 
@@ -347,7 +379,7 @@ Bool_t StMiniTreeMaker::processEvent()
     //if(Debug()) LOG_INFO<<"Pass pion Trigger"<<endm;
     //if(!Is2PionEvent()) return kStOK;
     //if(Debug()) LOG_INFO<<"Pass 2pion Trigger"<<endm;
-    if(mFillHisto)  hEvent->Fill(5.5);
+    //if(mFillHisto)  hEvent->Fill(5.5);
 
     //---get--centrality---
     Int_t runId = mMuEvent->runNumber();
@@ -375,16 +407,38 @@ Bool_t StMiniTreeMaker::processEvent()
     int nTrack = 0;
     for(Int_t i=0;i<nPrimary;i++){
         StMuTrack* pTrack = mMuDst->primaryTracks(i);
+        Int_t trkId = pTrack->id();
+        if(trkId == 406 ){ 
+            if(Debug()) cout<<"trkId: "<<trkId<<endl;
+            if(Debug()) cout<<"nSigmaPi: "<<pTrack->nSigmaPion()<<endl;
+            cout<<"trkFlag: "<<pTrack->globalTrack()->flag()<<endl;
+            StThreeVectorF P = pTrack->momentum();
+            if(Debug()) cout<<"P: "<< P.perp()<<endl;
+            if(Debug()) cout<<"eta: "<< P.pseudoRapidity()<<endl;
+            if(Debug()) cout<<"Phi: "<< P.phi()<<endl;
+            cout<<"IsValidTrack: "<<IsValidTrack(pTrack)<<endl;
+            cout<<"nHitsFit: "<<pTrack->nHitsFit(kTpcId)<<endl;
+            cout<<"nHitsFit_global: "<<pTrack->globalTrack()->nHitsFit(kTpcId)<<endl;
+            cout<<"kTpcId: "<<kTpcId<<endl;
+            cout<<"nHitsDedx: "<<pTrack->nHitsDedx()<<endl;
+            cout<<"nHitsRatio: "<<pTrack->nHitsFit(kTpcId)/(1.0*pTrack->nHitsPoss(kTpcId))<<endl;
+            cout<<"IsMtdTrack: "<<IsMtdTrack(pTrack)<<endl;
+            cout<<"iMtd: "<<pTrack->index2MtdHit()<<endl;
+            cout<<"iMtd_global: "<<pTrack->globalTrack()->index2MtdHit()<<endl;
+            cout<<"IsPion: "<<IsPion(pTrack)<<endl;
+        }
         if(!PassPiCandidate(pTrack)) continue;
-        mEvtData.mPiTrkId[nTrack] = i;
+        mEvtData.mPiTrkId[nTrack] = pTrack->id();
+        mEvtData.mnSigmaPi[nTrack] = pTrack->nSigmaPion();
+        mEvtData.mgDca[nTrack] = pTrack->dcaGlobal().mag();
         nTrack++;
     }
     mEvtData.mNPiTrk  = nTrack;
-    for(Int_t i=0;i<nTrack;i++){
-        mEvtData.mPiPt[i] = PiCandidate[i].perp();
-        mEvtData.mPiEta[i] = PiCandidate[i].pseudoRapidity();
-        mEvtData.mPiPhi[i] = PiCandidate[i].phi();
-    }
+    //for(Int_t i=0;i<nTrack;i++){
+    //    mEvtData.mPiPt[i] = PiCandidate[i].perp();
+    //    mEvtData.mPiEta[i] = PiCandidate[i].pseudoRapidity();
+    //    mEvtData.mPiPhi[i] = PiCandidate[i].phi();
+    //}
     //-----for---track---check----
 
     //--PxCut-centrality-dependent---
@@ -436,7 +490,7 @@ Bool_t StMiniTreeMaker::IsValidTrack(StMuTrack *track)
     Float_t p = mom.mag();
     Float_t eta = mom.pseudoRapidity();
     Float_t phi = mom.phi();
-    if(phi<0) phi += 2*pi;
+    if(phi<0) phi += 2*3.1415926;
 
     if(p < mMinTrkP   || p > mMaxTrkP)             return kFALSE;
     if(eta < mMinTrkEta || eta > mMaxTrkEta)           return kFALSE;
@@ -450,19 +504,18 @@ Bool_t StMiniTreeMaker::IsValidTrack(StMuTrack *track)
 Bool_t StMiniTreeMaker::IsMtdTrack(StMuTrack *track)
 {
     Double_t gDca = track->dcaGlobal().mag();
-    if( gDca > 3. ) return kFALSE;
-    //if(Debug()) cout<<"gDca"<<gDca<<endl;
-    //hDca->Fill(gDca);//???can't pass why???
+    if( gDca > 3. ) {cout<<"IsMtdTrack_gDca: "<<gDca<<endl;return kFALSE;}
     int iMtd = track->index2MtdHit();
     if(iMtd<0) return kFALSE;
-    //if(Debug()) cout<<"IsMtd: "<<iMtd<<endl;
     return kTRUE;
 }
 //_____________________________________________________________________________
 Bool_t StMiniTreeMaker::IsPion(StMuTrack *track)
 {
+    if(Debug()) cout<<"in IsPion "<<endl;
     Float_t nSgmPi = track->nSigmaPion();
     if(nSgmPi < mMinNsigmaPi || nSgmPi > mMaxNsigmaPi) return kFALSE;
+    if(Debug())cout<<"IsPion: "<<nSgmPi<<endl;
     return kTRUE;
 }
 //_____________________________________________________________________________
@@ -481,6 +534,7 @@ Bool_t StMiniTreeMaker::IsPionEvent()
         if(Debug()) cout<<"IsPionEvent"<<endl;
         return kTRUE;
     } 
+    else return kFALSE;
 }
 //_____________________________________________________________________________
 Bool_t StMiniTreeMaker::Is2PionEvent()
@@ -497,7 +551,8 @@ Bool_t StMiniTreeMaker::Is2PionEvent()
     if(nPi>1){
         if(Debug()) cout<<"Is2PionEvent nPrimary: "<<endl;
         return kTRUE;
-    } 
+    }
+    else return kFALSE;
 }
 //_____________________________________________________________________________
 Bool_t StMiniTreeMaker::PassPxCandidate(StMuTrack *track)
@@ -519,8 +574,8 @@ Bool_t StMiniTreeMaker::PassPiCandidate(StMuTrack *track)
     if(!IsValidTrack(track)) return kFALSE;
     if(!IsMtdTrack(track)) return kFALSE;
     if(!IsPion(track)) return kFALSE;
-    StThreeVectorF mom = track->momentum();
     //float eta = mom.pseudoRapidity();
+    StThreeVectorF mom = track->momentum();
     PiCandidate.push_back(mom);
     return kTRUE;
 }
@@ -624,6 +679,8 @@ void StMiniTreeMaker::bookTree()
     // track information
     mEvtTree->Branch("mNPiTrk", &mEvtData.mNPiTrk, "mNPiTrk/S");
     mEvtTree->Branch("mPiTrkId", &mEvtData.mPiTrkId, "mPiTrkId[mNPiTrk]/S");
+    mEvtTree->Branch("mnSigmaPi", &mEvtData.mnSigmaPi, "mnSigmaPi[mNPiTrk]/F");
+    mEvtTree->Branch("mgDca", &mEvtData.mgDca, "mgDca[mNPiTrk]/F");
     mEvtTree->Branch("mPiPt", &mEvtData.mPiPt, "mPiPt[mNPiTrk]/F");
     mEvtTree->Branch("mPiEta", &mEvtData.mPiEta, "mPiEta[mNPiTrk]/F");
     mEvtTree->Branch("mPiPhi", &mEvtData.mPiPhi, "mPiPhi[mNPiTrk]/F");
