@@ -11,6 +11,8 @@ struct StEvtData
 	Float_t  mZDCRate;
 	Float_t  mVpdVz;
     Float_t  mTpcVz;
+    Float_t  mPxL;
+	Float_t  mPxR;
 
 	//track information
 	Short_t    mNPiTrk;
@@ -20,6 +22,4 @@ struct StEvtData
     Float_t  mPiPt[mMax];
     Float_t  mPiEta[mMax];
     Float_t  mPiPhi[mMax];
-    Float_t  mPxL;
-	Float_t  mPxR;
 };

@@ -281,10 +281,10 @@ Bool_t StMiniTreeMaker::passEvent(StMuEvent *ev)
 Bool_t StMiniTreeMaker::processEvent()
 {
     //-----test
-    if(Debug()) LOG_INFO << "test eventId: " << endm;
-    Int_t testEventId = mMuEvent->eventNumber();
-    if( testEventId != 1893484 ) return kFALSE;//test events;
-    if(Debug()) LOG_INFO<<"test eventId: "<<testEventId<<endm;
+    //if(Debug()) LOG_INFO << "test eventId: " << endm;
+    //Int_t testEventId = mMuEvent->eventNumber();
+    //if( testEventId != 1893484 ) return kFALSE;//test events;
+    //if(Debug()) LOG_INFO<<"test eventId: "<<testEventId<<endm;
     //-----test
 
     if(mFillHisto) hEvent->Fill(2.5);
@@ -377,9 +377,9 @@ Bool_t StMiniTreeMaker::processEvent()
     //---pion--match-with-MTD 
     //if(!IsPionEvent()) return kStOK;
     //if(Debug()) LOG_INFO<<"Pass pion Trigger"<<endm;
-    //if(!Is2PionEvent()) return kStOK;
-    //if(Debug()) LOG_INFO<<"Pass 2pion Trigger"<<endm;
-    //if(mFillHisto)  hEvent->Fill(5.5);
+    if(!Is2PionEvent()) return kStOK;
+    if(Debug()) LOG_INFO<<"Pass 2pion Trigger"<<endm;
+    if(mFillHisto)  hEvent->Fill(5.5);
 
     //---get--centrality---
     Int_t runId = mMuEvent->runNumber();
@@ -408,25 +408,25 @@ Bool_t StMiniTreeMaker::processEvent()
     for(Int_t i=0;i<nPrimary;i++){
         StMuTrack* pTrack = mMuDst->primaryTracks(i);
         Int_t trkId = pTrack->id();
-        if(trkId == 406 ){ 
-            if(Debug()) cout<<"trkId: "<<trkId<<endl;
-            if(Debug()) cout<<"nSigmaPi: "<<pTrack->nSigmaPion()<<endl;
-            cout<<"trkFlag: "<<pTrack->globalTrack()->flag()<<endl;
-            StThreeVectorF P = pTrack->momentum();
-            if(Debug()) cout<<"P: "<< P.perp()<<endl;
-            if(Debug()) cout<<"eta: "<< P.pseudoRapidity()<<endl;
-            if(Debug()) cout<<"Phi: "<< P.phi()<<endl;
-            cout<<"IsValidTrack: "<<IsValidTrack(pTrack)<<endl;
-            cout<<"nHitsFit: "<<pTrack->nHitsFit(kTpcId)<<endl;
-            cout<<"nHitsFit_global: "<<pTrack->globalTrack()->nHitsFit(kTpcId)<<endl;
-            cout<<"kTpcId: "<<kTpcId<<endl;
-            cout<<"nHitsDedx: "<<pTrack->nHitsDedx()<<endl;
-            cout<<"nHitsRatio: "<<pTrack->nHitsFit(kTpcId)/(1.0*pTrack->nHitsPoss(kTpcId))<<endl;
-            cout<<"IsMtdTrack: "<<IsMtdTrack(pTrack)<<endl;
-            cout<<"iMtd: "<<pTrack->index2MtdHit()<<endl;
-            cout<<"iMtd_global: "<<pTrack->globalTrack()->index2MtdHit()<<endl;
-            cout<<"IsPion: "<<IsPion(pTrack)<<endl;
-        }
+        //if(trkId == 406 ){ 
+        //    if(Debug()) cout<<"trkId: "<<trkId<<endl;
+        //    if(Debug()) cout<<"nSigmaPi: "<<pTrack->nSigmaPion()<<endl;
+        //    cout<<"trkFlag: "<<pTrack->globalTrack()->flag()<<endl;
+        //    StThreeVectorF P = pTrack->momentum();
+        //    if(Debug()) cout<<"P: "<< P.perp()<<endl;
+        //    if(Debug()) cout<<"eta: "<< P.pseudoRapidity()<<endl;
+        //    if(Debug()) cout<<"Phi: "<< P.phi()<<endl;
+        //    cout<<"IsValidTrack: "<<IsValidTrack(pTrack)<<endl;
+        //    cout<<"nHitsFit: "<<pTrack->nHitsFit(kTpcId)<<endl;
+        //    cout<<"nHitsFit_global: "<<pTrack->globalTrack()->nHitsFit(kTpcId)<<endl;
+        //    cout<<"kTpcId: "<<kTpcId<<endl;
+        //    cout<<"nHitsDedx: "<<pTrack->nHitsDedx()<<endl;
+        //    cout<<"nHitsRatio: "<<pTrack->nHitsFit(kTpcId)/(1.0*pTrack->nHitsPoss(kTpcId))<<endl;
+        //    cout<<"IsMtdTrack: "<<IsMtdTrack(pTrack)<<endl;
+        //    cout<<"iMtd: "<<pTrack->index2MtdHit()<<endl;
+        //    cout<<"iMtd_global: "<<pTrack->globalTrack()->index2MtdHit()<<endl;
+        //    cout<<"IsPion: "<<IsPion(pTrack)<<endl;
+        //}
         if(!PassPiCandidate(pTrack)) continue;
         mEvtData.mPiTrkId[nTrack] = pTrack->id();
         mEvtData.mnSigmaPi[nTrack] = pTrack->nSigmaPion();
@@ -434,11 +434,11 @@ Bool_t StMiniTreeMaker::processEvent()
         nTrack++;
     }
     mEvtData.mNPiTrk  = nTrack;
-    //for(Int_t i=0;i<nTrack;i++){
-    //    mEvtData.mPiPt[i] = PiCandidate[i].perp();
-    //    mEvtData.mPiEta[i] = PiCandidate[i].pseudoRapidity();
-    //    mEvtData.mPiPhi[i] = PiCandidate[i].phi();
-    //}
+    for(Int_t i=0;i<nTrack;i++){
+        mEvtData.mPiPt[i] = PiCandidate[i].perp();
+        mEvtData.mPiEta[i] = PiCandidate[i].pseudoRapidity();
+        mEvtData.mPiPhi[i] = PiCandidate[i].phi();
+    }
     //-----for---track---check----
 
     //--PxCut-centrality-dependent---
