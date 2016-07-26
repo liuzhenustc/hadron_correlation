@@ -90,9 +90,11 @@ class StMiniTreeMaker : public StMaker {
         Bool_t   IsValidTrack(StMuTrack *track);
         Bool_t   IsMtdTrack(StMuTrack *track);
         Bool_t   IsPion(StMuTrack *track);
+        Bool_t   IsMtdEvent();
         Bool_t   IsPionEvent();
         Bool_t   Is2PionEvent();
         Bool_t   PassPxCandidate(StMuTrack *track);
+        Bool_t   PassTrkCandidate(StMuTrack *track);
         Bool_t   PassPiCandidate(StMuTrack *track);
         void     ComparePt(StThreeVectorF* vec1 ,StThreeVectorF* vec2);
         void     GetTrigger();
@@ -144,13 +146,13 @@ class StMiniTreeMaker : public StMaker {
 
         Int_t      mIndex2Primary[50000];
         IntVec      mTriggerIDs;
+        StThreeVecF TrkCandidate;
         StThreeVecF PiCandidate;
         StThreeVecF TrkCandidateL;//-1<eta<0.5
         StThreeVecF TrkCandidateR;//0.5<eta<1
 
         //define histograms ongoing...
         TH1D           *hEvent;
-        TH1D           *hDca;
       
         ClassDef(StMiniTreeMaker, 1)
 };
