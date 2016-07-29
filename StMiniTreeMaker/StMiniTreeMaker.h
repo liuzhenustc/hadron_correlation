@@ -98,7 +98,7 @@ class StMiniTreeMaker : public StMaker {
         Bool_t   PassPiCandidate(StMuTrack *track);
         void     ComparePt(StThreeVectorF* vec1 ,StThreeVectorF* vec2);
         void     GetTrigger();
-        Float_t  PxCal(StThreeVecF trkVec);
+        Float_t  PxCal(StThreeVectorF trkCan, StThreeVecF trkVec);
         Bool_t   PassPxCut(Float_t PxL,Float_t PxR, Short_t cen);
 
     private:

@@ -5,10 +5,10 @@ struct StEvtData
     Int_t    mRunId;
     Int_t    mEventId;
     Int_t    mGRefMult;
-    Float_t    mGRefMultCorr;
-    Float_t    mEvtWeight;
-    Short_t    mCentrality16;
-    Short_t    mCentrality9;
+    Float_t  mGRefMultCorr;
+    Float_t  mEvtWeight;
+    Short_t  mCentrality16;
+    Short_t  mCentrality9;
     Float_t  mZDCRate;
     Float_t  mBBCRate;
     Float_t  mBField;
@@ -16,8 +16,8 @@ struct StEvtData
     Float_t  mTpcVx;
     Float_t  mTpcVy;
     Float_t  mTpcVz;
-    Float_t  mPxL;
-    Float_t  mPxR;
+    Float_t  mPxL[mMax];
+    Float_t  mPxR[mMax];
 
     //track information
     Short_t    mNTrk;
@@ -27,7 +27,10 @@ struct StEvtData
     Float_t    mnSigmaP[mMax];
     Float_t    mnSigmaE[mMax];
     Float_t    mgDca[mMax];
-    Float_t  mTrkPt[mMax];
-    Float_t  mTrkEta[mMax];
-    Float_t  mTrkPhi[mMax];
+    Short_t    mNhitsFit[mMax];
+    Short_t    mNhitsDedx[mMax];
+    Short_t    mCharge[mMax];
+    Float_t    mTrkPt[mMax];
+    Float_t    mTrkEta[mMax];
+    Float_t    mTrkPhi[mMax];
 };

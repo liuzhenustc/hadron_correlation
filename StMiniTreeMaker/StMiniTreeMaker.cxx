@@ -390,23 +390,24 @@ Bool_t StMiniTreeMaker::processEvent()
     for(Int_t i=0;i<nPrimary;i++){
         StMuTrack* pTrack = mMuDst->primaryTracks(i);
         if(!PassTrkCandidate(pTrack)) continue;
-        Int_t trkId = pTrack->id();
         mEvtData.mTrkId[nTrack] = pTrack->id();
         mEvtData.mnSigmaPi[nTrack] = pTrack->nSigmaPion();
         mEvtData.mnSigmaK[nTrack] = pTrack->nSigmaKaon();
         mEvtData.mnSigmaP[nTrack] = pTrack->nSigmaProton();
         mEvtData.mnSigmaE[nTrack] = pTrack->nSigmaElectron();
         mEvtData.mgDca[nTrack] = pTrack->dcaGlobal().mag();
+        mEvtData.mNhitsFit[nTrack] = pTrack->nHitsFit(kTpcId);
+        mEvtData.mNhitsDedx[nTrack] = pTrack->nHitsDedx();
+        mEvtData.mCharge[nTrack] = pTrack->charge();
         nTrack++;
     }
-    mEvtData.mNTrk  = nTrack;
     if(!(TrkCandidate.size()>1)) return kStOK;//At least 2 tracks match with MTD
     if(mFillHisto)  hEvent->Fill(5.5);
 
     GetTrigger();
 
-    Float_t PxL = PxCal(TrkCandidateL);
-    Float_t PxR = PxCal(TrkCandidateR);
+    //Float_t PxL = PxCal(TrkCandidateL);
+    //Float_t PxR = PxCal(TrkCandidateR);
 
     mEvtData.mRunId           =runId;
     mEvtData.mEventId         =eventId;
@@ -423,9 +424,6 @@ Bool_t StMiniTreeMaker::processEvent()
     mEvtData.mTpcVy           =tpcVy;
     mEvtData.mTpcVz           =tpcVz;
 
-    mEvtData.mPxL   =PxL;
-    mEvtData.mPxR   =PxR;
-
     //---track---level----
     Int_t nTrk = TrkCandidate.size();
     mEvtData.mNTrk  = nTrk;
@@ -433,6 +431,8 @@ Bool_t StMiniTreeMaker::processEvent()
         mEvtData.mTrkPt[i] = TrkCandidate[i].perp();
         mEvtData.mTrkEta[i] = TrkCandidate[i].pseudoRapidity();
         mEvtData.mTrkPhi[i] = TrkCandidate[i].phi();
+        mEvtData.mPxL[i] = PxCal(TrkCandidate[i],TrkCandidateL);
+        mEvtData.mPxR[i] = PxCal(TrkCandidate[i],TrkCandidateR);
     }
 
     return kTRUE;
@@ -583,14 +583,33 @@ void StMiniTreeMaker::GetTrigger()
     }
 }
 //_____________________________________________________________________________
-Float_t StMiniTreeMaker::PxCal(StThreeVecF trkVec)
+//Float_t StMiniTreeMaker::PxCal(StThreeVecF trkVec)
+//{
+//    Int_t nVec = trkVec.size();
+//    Float_t Px = 0;
+//    Float_t PtTrig = TrkCandidate[0].perp();
+//    Float_t PhiTrig = TrkCandidate[0].phi();
+//    if(Debug()) cout<<"PxCal Trigger: "<<PtTrig<<endl;
+//
+//    for(Int_t i=0;i<nVec;i++){
+//        Float_t PtCandidate = trkVec[i].perp();
+//        Float_t PhiCandidate = trkVec[i].phi();
+//        Float_t DeltaPhi = PhiCandidate-PhiTrig;//candidate-trigger
+//        if( fabs(DeltaPhi) < 0.5*3.1415926 ) continue;
+//        //if(Debug()) {cout<<"After DeltaPhi cut: "<<DeltaPhi<<endl;}
+//        Float_t par = PtCandidate*cos(DeltaPhi);
+//        Px = Px + par;
+//        //if(Debug()) cout<<"Px: "<<Px<<endl;
+//    }   
+//    return Px;
+//}
+//_____________________________________________________________________________
+Float_t StMiniTreeMaker::PxCal(StThreeVectorF trkCan, StThreeVecF trkVec)
 {
     Int_t nVec = trkVec.size();
-    Float_t Px = 0;
-    Float_t PtTrig = TrkCandidate[0].perp();
-    Float_t PhiTrig = TrkCandidate[0].phi();
-    if(Debug()) cout<<"PxCal Trigger: "<<PtTrig<<endl;
 
+    Float_t Px = 0;
+    Float_t PhiTrig = trkCan.phi();
     for(Int_t i=0;i<nVec;i++){
         Float_t PtCandidate = trkVec[i].perp();
         Float_t PhiCandidate = trkVec[i].phi();
@@ -600,9 +619,10 @@ Float_t StMiniTreeMaker::PxCal(StThreeVecF trkVec)
         Float_t par = PtCandidate*cos(DeltaPhi);
         Px = Px + par;
         //if(Debug()) cout<<"Px: "<<Px<<endl;
-    }   
+    }
     return Px;
 }
+
 //_____________________________________________________________________________
 Bool_t StMiniTreeMaker::PassPxCut(Float_t PxL,Float_t PxR, Short_t cen)
 {
@@ -668,11 +688,14 @@ void StMiniTreeMaker::bookTree()
     mEvtTree->Branch("mnSigmaP", &mEvtData.mnSigmaP, "mnSigmaP[mNTrk]/F");
     mEvtTree->Branch("mnSigmaE", &mEvtData.mnSigmaE, "mnSigmaE[mNTrk]/F");
     mEvtTree->Branch("mgDca", &mEvtData.mgDca, "mgDca[mNTrk]/F");
+    mEvtTree->Branch("mNhitsFit", &mEvtData.mNhitsFit, "mNhitsFit[mNTrk]/S");
+    mEvtTree->Branch("mNhitsDedx", &mEvtData.mNhitsDedx, "mNhitsDedx[mNTrk]/S");
+    mEvtTree->Branch("mCharge", &mEvtData.mCharge, "mCharge[mNTrk]/S");
     mEvtTree->Branch("mTrkPt", &mEvtData.mTrkPt, "mTrkPt[mNTrk]/F");
     mEvtTree->Branch("mTrkEta", &mEvtData.mTrkEta, "mTrkEta[mNTrk]/F");
     mEvtTree->Branch("mTrkPhi", &mEvtData.mTrkPhi, "mTrkPhi[mNTrk]/F");
-    mEvtTree->Branch("mPxL", &mEvtData.mPxL, "mPxL/F");
-    mEvtTree->Branch("mPxR", &mEvtData.mPxR, "mPxR/F");
+    mEvtTree->Branch("mPxL", &mEvtData.mPxL, "mPxL[mNTrk]/F");
+    mEvtTree->Branch("mPxR", &mEvtData.mPxR, "mPxR[mNTrk]/F");
 }
 //_____________________________________________________________________________
 void StMiniTreeMaker::printConfig()
